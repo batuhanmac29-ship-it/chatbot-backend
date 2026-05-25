@@ -1,0 +1,8 @@
+version: "2"
+tunnels:
+  main:
+    proto: http
+    addr: 3000
+    request_header:
+      add:
+        - "ngrok-skip-browser-warning: true"
