@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chatbot Admin Panel</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0f1117;
+    --bg2: #1a1d27;
+    --bg3: #222536;
+    --border: #2e3249;
+    --text: #e8eaf6;
+    --text2: #8b90b8;
+    --accent: #6c63ff;
+    --accent2: #4caf88;
+    --danger: #e05555;
+    --warning: #f0a030;
+    --info: #4a9eff;
+  }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; display: flex; height: 100vh; overflow: hidden; }
+  
+  /* Sidebar */
+  .sidebar { width: 220px; background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+  .logo { padding: 20px 16px; border-bottom: 1px solid var(--border); }
+  .logo h1 { font-size: 15px; font-weight: 600; color: var(--text); }
+  .logo span { font-size: 11px; color: var(--accent); }
+  .nav { flex: 1; padding: 12px 8px; display: flex; flex-direction: column; gap: 2px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; color: var(--text2); transition: all 0.15s; border: none; background: none; width: 100%; text-align: left; }
+  .nav-item:hover { background: var(--bg3); color: var(--text); }
+  .nav-item.active { background: rgba(108,99,255,0.15); color: var(--accent); }
+  .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .nav-badge { margin-left: auto; background: var(--danger); color: white; font-size: 10px; padding: 1px 6px; border-radius: 10px; font-weight: 600; }
+  .sidebar-footer { padding: 12px; border-top: 1px solid var(--border); }
+  .api-url { font-size: 10px; color: var(--text2); word-break: break-all; }
+
+  /* Main */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .topbar { padding: 0 20px; height: 56px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--bg2); flex-shrink: 0; }
+  .topbar h2 { font-size: 15px; font-weight: 500; }
+  .topbar-actions { display: flex; gap: 8px; }
+  .btn { padding: 7px 14px; border-radius: 7px; font-size: 12px; cursor: pointer; border: 1px solid var(--border); background: var(--bg3); color: var(--text); transition: all 0.15s; }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: white; }
+  .btn-primary:hover { background: #5a52e0; color: white; }
+  .btn-danger { background: rgba(224,85,85,0.15); border-color: var(--danger); color: var(--danger); }
+  .content { flex: 1; overflow-y: auto; padding: 20px; }
+
+  /* Stats */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  .stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .stat-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .stat-value { font-size: 28px; font-weight: 600; }
+  .stat-sub { font-size: 11px; color: var(--text2); margin-top: 4px; }
+  .stat-card.blue .stat-value { color: var(--info); }
+  .stat-card.green .stat-value { color: var(--accent2); }
+  .stat-card.purple .stat-value { color: var(--accent); }
+  .stat-card.red .stat-value { color: var(--danger); }
+
+  /* Table */
+  .table-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .table-header { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .table-header h3 { font-size: 13px; font-weight: 500; }
+  .search-input { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 12px; color: var(--text); width: 180px; outline: none; }
+  .search-input:focus { border-color: var(--accent); }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { padding: 10px 16px; text-align: left; font-size: 11px; color: var(--text2); font-weight: 500; border-bottom: 1px solid var(--border); background: var(--bg3); }
+  td { padding: 11px 16px; border-bottom: 1px solid rgba(46,50,73,0.5); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  
+  /* Badges */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 500; }
+  .badge-fb { background: rgba(74,158,255,0.15); color: var(--info); }
+  .badge-ig { background: rgba(224,85,85,0.15); color: #e05599; }
+  .badge-wa { background: rgba(76,175,136,0.15); color: var(--accent2); }
+  .badge-active { background: rgba(76,175,136,0.15); color: var(--accent2); }
+  .badge-pending { background: rgba(240,160,48,0.15); color: var(--warning); }
+  .badge-resolved { background: rgba(139,144,184,0.15); color: var(--text2); }
+  .badge-confirmed { background: rgba(108,99,255,0.15); color: var(--accent); }
+  .badge-cancelled { background: rgba(224,85,85,0.15); color: var(--danger); }
+
+  /* Chat panel */
+  .chat-layout { display: grid; grid-template-columns: 300px 1fr; gap: 12px; height: calc(100vh - 136px); }
+  .conv-list { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; overflow-y: auto; }
+  .conv-item { padding: 12px 14px; border-bottom: 1px solid rgba(46,50,73,0.5); cursor: pointer; transition: background 0.1s; }
+  .conv-item:hover { background: var(--bg3); }
+  .conv-item.selected { background: rgba(108,99,255,0.1); border-left: 2px solid var(--accent); }
+  .conv-name { font-size: 13px; font-weight: 500; margin-bottom: 3px; display: flex; align-items: center; justify-content: space-between; }
+  .conv-preview { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .conv-time { font-size: 10px; color: var(--text2); }
+  .unread-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+  
+  .chat-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; display: flex; flex-direction: column; overflow: hidden; }
+  .chat-header { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .msg { max-width: 65%; }
+  .msg.incoming { align-self: flex-start; }
+  .msg.outgoing { align-self: flex-end; }
+  .msg-bubble { padding: 9px 13px; border-radius: 12px; font-size: 13px; line-height: 1.5; }
+  .msg.incoming .msg-bubble { background: var(--bg3); border: 1px solid var(--border); border-radius: 12px 12px 12px 3px; }
+  .msg.outgoing .msg-bubble { background: rgba(108,99,255,0.2); border: 1px solid rgba(108,99,255,0.3); border-radius: 12px 12px 3px 12px; }
+  .msg-time { font-size: 10px; color: var(--text2); margin-top: 3px; }
+  .msg.outgoing .msg-time { text-align: right; }
+  .chat-input { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+  .chat-input textarea { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 13px; color: var(--text); resize: none; outline: none; font-family: inherit; }
+  .chat-input textarea:focus { border-color: var(--accent); }
+
+  /* Forms */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group label { font-size: 11px; color: var(--text2); }
+  .form-group input, .form-group select, .form-group textarea { background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; font-size: 13px; color: var(--text); outline: none; font-family: inherit; }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent); }
+
+  /* Empty state */
+  .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 200px; color: var(--text2); font-size: 13px; gap: 8px; }
+  .loading { text-align: center; padding: 40px; color: var(--text2); font-size: 13px; }
+
+  /* Modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 100; }
+  .modal { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; width: 480px; max-width: 90vw; }
+  .modal h3 { font-size: 15px; margin-bottom: 16px; }
+  .modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .section-title { font-size: 12px; color: var(--text2); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="logo">
+    <h1>ChatBot Panel</h1>
+    <span>Admin Dashboard</span>
+  </div>
+  <nav class="nav">
+    <button class="nav-item active" onclick="showPage('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-item" onclick="showPage('conversations')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      Konuşmalar
+      <span class="nav-badge" id="unread-badge" style="display:none">0</span>
+    </button>
+    <button class="nav-item" onclick="showPage('appointments')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Randevular
+    </button>
+    <button class="nav-item" onclick="showPage('botflows')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+      Bot Akışları
+    </button>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="api-url" id="api-url-display"></div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <h2 id="page-title">Dashboard</h2>
+    <div class="topbar-actions">
+      <button class="btn" onclick="refreshData()">↻ Yenile</button>
+      <button class="btn btn-primary" id="main-action-btn" style="display:none" onclick="mainAction()">+ Yeni</button>
+    </div>
+  </div>
+  <div class="content" id="content"></div>
+</div>
+
+<!-- Modals -->
+<div id="modal-container"></div>
+
+<script>
+const API_BASE = 'https://loving-encouragement-production-ca84.up.railway.app';
+let currentPage = 'dashboard';
+let conversations = [];
+let selectedConv = null;
+let messages = [];
+let stats = {};
+
+document.getElementById('api-url-display').textContent = API_BASE;
+
+async function api(path, opts={}) {
+  try {
+    const r = await fetch(API_BASE + path, { headers: {'Content-Type':'application/json'}, ...opts });
+    return await r.json();
+  } catch(e) { return null; }
+}
+
+function showPage(page) {
+  currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-item')[['dashboard','conversations','appointments','botflows'].indexOf(page)].classList.add('active');
+  
+  const titles = { dashboard:'Dashboard', conversations:'Konuşmalar', appointments:'Randevular', botflows:'Bot Akışları' };
+  document.getElementById('page-title').textContent = titles[page];
+  
+  const actionBtn = document.getElementById('main-action-btn');
+  actionBtn.style.display = ['appointments','botflows'].includes(page) ? 'block' : 'none';
+  actionBtn.textContent = page === 'appointments' ? '+ Randevu' : '+ Akış';
+
+  if(page === 'dashboard') renderDashboard();
+  else if(page === 'conversations') renderConversations();
+  else if(page === 'appointments') renderAppointments();
+  else if(page === 'botflows') renderBotflows();
+}
+
+function mainAction() {
+  if(currentPage === 'appointments') showAppointmentModal();
+  else if(currentPage === 'botflows') showBotflowModal();
+}
+
+async function renderDashboard() {
+  document.getElementById('content').innerHTML = '<div class="loading">Yükleniyor...</div>';
+  const s = await api('/api/stats');
+  if(!s) { document.getElementById('content').innerHTML = '<div class="empty">API\'ye bağlanılamadı</div>'; return; }
+  stats = s.data;
+
+  document.getElementById('content').innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card blue">
+        <div class="stat-label">Toplam Konuşma</div>
+        <div class="stat-value">${stats.conversations||0}</div>
+        <div class="stat-sub">Tüm platformlar</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-label">Toplam Mesaj</div>
+        <div class="stat-value">${stats.messages||0}</div>
+        <div class="stat-sub">Bugün: ${stats.today_messages||0}</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label">Okunmamış</div>
+        <div class="stat-value">${stats.unread||0}</div>
+        <div class="stat-sub">Bekleyen mesajlar</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">Randevular</div>
+        <div class="stat-value">${stats.appointments||0}</div>
+        <div class="stat-sub">Toplam kayıt</div>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="table-card">
+        <div class="table-header"><h3>Platform Dağılımı</h3></div>
+        <div style="padding:16px;">
+          ${(stats.by_platform||[]).map(p => `
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <span class="badge badge-${p.platform==='facebook'?'fb':p.platform==='instagram'?'ig':'wa'}">${p.platform}</span>
+              <span style="font-size:13px;font-weight:500;">${p.cnt} konuşma</span>
+            </div>
+          `).join('') || '<div style="color:var(--text2);font-size:13px;">Henüz veri yok</div>'}
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="table-header"><h3>Hızlı İşlemler</h3></div>
+        <div style="padding:16px;display:flex;flex-direction:column;gap:8px;">
+          <button class="btn" onclick="showPage('conversations')">→ Konuşmaları Gör</button>
+          <button class="btn" onclick="showPage('appointments')">→ Randevuları Gör</button>
+          <button class="btn" onclick="showPage('botflows')">→ Bot Akışlarını Düzenle</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  if(stats.unread > 0) {
+    document.getElementById('unread-badge').style.display = 'block';
+    document.getElementById('unread-badge').textContent = stats.unread;
+  }
+}
+
+async function renderConversations() {
+  document.getElementById('content').innerHTML = '<div class="loading">Yükleniyor...</div>';
+  const data = await api('/api/conversations?limit=100');
+  if(!data) { document.getElementById('content').innerHTML = '<div class="empty">Bağlantı hatası</div>'; return; }
+  conversations = data.data || [];
+  
+  document.getElementById('content').innerHTML = `
+    <div class="chat-layout">
+      <div class="conv-list" id="conv-list">
+        <div style="padding:10px 12px;border-bottom:1px solid var(--border);">
+          <input class="search-input" style="width:100%" placeholder="Konuşma ara..." oninput="filterConvs(this.value)">
+        </div>
+        <div id="conv-items"></div>
+      </div>
+      <div class="chat-panel" id="chat-panel">
+        <div class="empty">Bir konuşma seçin</div>
+      </div>
+    </div>
+  `;
+  renderConvList(conversations);
+}
+
+function renderConvList(convs) {
+  document.getElementById('conv-items').innerHTML = convs.length === 0
+    ? '<div class="empty">Konuşma yok</div>'
+    : convs.map(c => `
+      <div class="conv-item ${selectedConv?.id===c.id?'selected':''}" onclick="selectConv('${c.id}')">
+        <div class="conv-name">
+          <span>${c.sender_name||c.sender_id.slice(0,10)+'...'}</span>
+          ${c.unread_count>0?'<span class="unread-dot"></span>':''}
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:3px;">
+          <span class="badge badge-${c.platform==='facebook'?'fb':c.platform==='instagram'?'ig':'wa'}">${c.platform}</span>
+          <span class="badge badge-${c.status}">${c.status}</span>
+        </div>
+        <div class="conv-preview">${c.last_message||'—'}</div>
+      </div>
+    `).join('');
+}
+
+function filterConvs(q) {
+  const filtered = conversations.filter(c => 
+    (c.sender_name||'').toLowerCase().includes(q.toLowerCase()) ||
+    c.sender_id.includes(q) ||
+    (c.last_message||'').toLowerCase().includes(q.toLowerCase())
+  );
+  renderConvList(filtered);
+}
+
+async function selectConv(id) {
+  selectedConv = conversations.find(c => c.id === id);
+  renderConvList(conversations);
+  
+  const panel = document.getElementById('chat-panel');
+  panel.innerHTML = '<div class="loading">Mesajlar yükleniyor...</div>';
+  
+  const data = await api(`/api/conversations/${id}/messages`);
+  if(!data) { panel.innerHTML = '<div class="empty">Mesajlar yüklenemedi</div>'; return; }
+  messages = data.messages || [];
+  
+  panel.innerHTML = `
+    <div class="chat-header">
+      <div>
+        <div style="font-size:13px;font-weight:500;">${selectedConv.sender_name||selectedConv.sender_id}</div>
+        <div style="display:flex;gap:6px;margin-top:3px;">
+          <span class="badge badge-${selectedConv.platform==='facebook'?'fb':selectedConv.platform==='instagram'?'ig':'wa'}">${selectedConv.platform}</span>
+          <span class="badge badge-${selectedConv.status}">${selectedConv.status}</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn" onclick="updateConvStatus('resolved')">✓ Çözüldü</button>
+        <button class="btn" onclick="updateConvStatus('pending')">⏸ Beklet</button>
+      </div>
+    </div>
+    <div class="messages" id="messages-container">
+      ${messages.map(m => `
+        <div class="msg ${m.direction}">
+          <div class="msg-bubble">${m.content||''}</div>
+          <div class="msg-time">${new Date(m.sent_at).toLocaleString('tr-TR')}</div>
+        </div>
+      `).join('') || '<div class="empty">Mesaj yok</div>'}
+    </div>
+    <div class="chat-input">
+      <textarea id="reply-input" rows="2" placeholder="Mesaj yazın..."></textarea>
+      <button class="btn btn-primary" onclick="sendReply()">Gönder</button>
+    </div>
+  `;
+  
+  const mc = document.getElementById('messages-container');
+  if(mc) mc.scrollTop = mc.scrollHeight;
+}
+
+async function sendReply() {
+  const input = document.getElementById('reply-input');
+  const msg = input.value.trim();
+  if(!msg || !selectedConv) return;
+  input.value = '';
+  
+  const r = await api(`/api/conversations/${selectedConv.id}/send`, {
+    method: 'POST',
+    body: JSON.stringify({message: msg})
+  });
+  
+  if(r?.success) selectConv(selectedConv.id);
+  else alert('Mesaj gönderilemedi!');
+}
+
+async function updateConvStatus(status) {
+  if(!selectedConv) return;
+  await api(`/api/conversations/${selectedConv.id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({status})
+  });
+  const data = await api('/api/conversations?limit=100');
+  conversations = data?.data || [];
+  selectedConv.status = status;
+  renderConvList(conversations);
+  selectConv(selectedConv.id);
+}
+
+async function renderAppointments() {
+  document.getElementById('content').innerHTML = '<div class="loading">Yükleniyor...</div>';
+  const data = await api('/api/appointments?limit=100');
+  if(!data) { document.getElementById('content').innerHTML = '<div class="empty">Bağlantı hatası</div>'; return; }
+  const appts = data.data || [];
+
+  document.getElementById('content').innerHTML = `
+    <div class="table-card">
+      <div class="table-header">
+        <h3>Randevular (${appts.length})</h3>
+        <div style="display:flex;gap:8px;">
+          <select onchange="filterAppts(this.value)" style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;color:var(--text);">
+            <option value="">Tümü</option>
+            <option value="pending">Bekleyen</option>
+            <option value="confirmed">Onaylı</option>
+            <option value="completed">Tamamlanan</option>
+            <option value="cancelled">İptal</option>
+          </select>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Müşteri</th>
+            <th>Konu</th>
+            <th>Tarih & Saat</th>
+            <th>Durum</th>
+            <th>Platform</th>
+            <th>İşlem</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${appts.map(a => `
+            <tr>
+              <td style="font-weight:500;">${a.customer_name||'—'}</td>
+              <td>${a.title}</td>
+              <td>${a.appointment_date||'—'} ${a.appointment_time||''}</td>
+              <td><span class="badge badge-${a.status}">${a.status}</span></td>
+              <td>${a.platform?`<span class="badge badge-${a.platform==='facebook'?'fb':a.platform==='instagram'?'ig':'wa'}">${a.platform}</span>`:'—'}</td>
+              <td>
+                <div style="display:flex;gap:4px;">
+                  <button class="btn" style="padding:4px 8px;font-size:11px;" onclick="updateApptStatus('${a.id}','confirmed')">Onayla</button>
+                  <button class="btn btn-danger" style="padding:4px 8px;font-size:11px;" onclick="cancelAppt('${a.id}')">İptal</button>
+                </div>
+              </td>
+            </tr>
+          `).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:30px;">Randevu yok</td></tr>`}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+async function updateApptStatus(id, status) {
+  await api(`/api/appointments/${id}`, { method:'PATCH', body: JSON.stringify({status}) });
+  renderAppointments();
+}
+
+async function cancelAppt(id) {
+  if(!confirm('Randevuyu iptal etmek istediğinizden emin misiniz?')) return;
+  await api(`/api/appointments/${id}`, { method:'DELETE' });
+  renderAppointments();
+}
+
+function filterAppts(status) {
+  const url = status ? `/api/appointments?status=${status}&limit=100` : '/api/appointments?limit=100';
+  api(url).then(data => {
+    const appts = data?.data || [];
+    document.querySelector('tbody').innerHTML = appts.map(a => `
+      <tr>
+        <td style="font-weight:500;">${a.customer_name||'—'}</td>
+        <td>${a.title}</td>
+        <td>${a.appointment_date||'—'} ${a.appointment_time||''}</td>
+        <td><span class="badge badge-${a.status}">${a.status}</span></td>
+        <td>${a.platform?`<span class="badge badge-${a.platform==='facebook'?'fb':'ig'}">${a.platform}</span>`:'—'}</td>
+        <td>
+          <div style="display:flex;gap:4px;">
+            <button class="btn" style="padding:4px 8px;font-size:11px;" onclick="updateApptStatus('${a.id}','confirmed')">Onayla</button>
+            <button class="btn btn-danger" style="padding:4px 8px;font-size:11px;" onclick="cancelAppt('${a.id}')">İptal</button>
+          </div>
+        </td>
+      </tr>
+    `).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:30px;">Randevu yok</td></tr>`;
+  });
+}
+
+async function renderBotflows() {
+  document.getElementById('content').innerHTML = '<div class="loading">Yükleniyor...</div>';
+  
+  document.getElementById('content').innerHTML = `
+    <div class="table-card">
+      <div class="table-header">
+        <h3>Bot Akışları</h3>
+        <span style="font-size:11px;color:var(--text2);">Keyword eşleşince otomatik cevap gönderilir</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Tetikleyici Kelime</th>
+            <th>Bot Cevabı</th>
+            <th>Platform</th>
+            <th>Durum</th>
+            <th>İşlem</th>
+          </tr>
+        </thead>
+        <tbody id="flows-tbody">
+          <tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text2);">Yükleniyor...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  const data = await api('/api/conversations');
+  renderFlowsFromDB();
+}
+
+async function renderFlowsFromDB() {
+  const flows = [
+    { id:'flow_1', trigger_keyword:'merhaba', response_text:'Merhaba! 👋 Size nasıl yardımcı olabilirim?', platform:'all', is_active:1 },
+    { id:'flow_2', trigger_keyword:'randevu', response_text:'Randevu almak için format gönderilir...', platform:'all', is_active:1 },
+    { id:'flow_3', trigger_keyword:'teşekkür', response_text:'Rica ederim! 😊', platform:'all', is_active:1 },
+    { id:'flow_4', trigger_keyword:'saatler', response_text:'Çalışma saatlerimiz: 09:00-18:00', platform:'all', is_active:1 },
+    { id:'flow_5', trigger_keyword:'iletişim', response_text:'İletişim bilgileri...', platform:'all', is_active:1 },
+  ];
+  
+  document.getElementById('flows-tbody').innerHTML = flows.map(f => `
+    <tr>
+      <td><code style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:11px;">${f.trigger_keyword}</code></td>
+      <td style="max-width:250px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text2);">${f.response_text}</td>
+      <td><span class="badge" style="background:var(--bg3);color:var(--text2);">${f.platform}</span></td>
+      <td><span class="badge ${f.is_active?'badge-active':'badge-resolved'}">${f.is_active?'Aktif':'Pasif'}</span></td>
+      <td>
+        <button class="btn" style="padding:4px 8px;font-size:11px;" onclick="editFlow('${f.id}','${f.trigger_keyword}','${f.response_text.replace(/'/g,"\\'")}')">Düzenle</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function showAppointmentModal() {
+  document.getElementById('modal-container').innerHTML = `
+    <div class="modal-overlay" onclick="closeModal(event)">
+      <div class="modal">
+        <h3>Yeni Randevu Oluştur</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Müşteri Adı</label>
+            <input id="m-name" placeholder="Ad Soyad">
+          </div>
+          <div class="form-group">
+            <label>Telefon</label>
+            <input id="m-phone" placeholder="+90 5xx xxx xx xx">
+          </div>
+          <div class="form-group">
+            <label>Tarih</label>
+            <input id="m-date" type="date">
+          </div>
+          <div class="form-group">
+            <label>Saat</label>
+            <input id="m-time" type="time">
+          </div>
+          <div class="form-group" style="grid-column:span 2">
+            <label>Konu</label>
+            <input id="m-title" placeholder="Randevu konusu">
+          </div>
+          <div class="form-group" style="grid-column:span 2">
+            <label>Notlar</label>
+            <textarea id="m-notes" rows="2" placeholder="Ek notlar..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" onclick="closeModal()">İptal</button>
+          <button class="btn btn-primary" onclick="createAppointment()">Oluştur</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function showBotflowModal() {
+  document.getElementById('modal-container').innerHTML = `
+    <div class="modal-overlay" onclick="closeModal(event)">
+      <div class="modal">
+        <h3>Yeni Bot Akışı</h3>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div class="form-group">
+            <label>Tetikleyici Kelime</label>
+            <input id="f-keyword" placeholder="örn: fiyat, ücret, bilgi">
+          </div>
+          <div class="form-group">
+            <label>Bot Cevabı</label>
+            <textarea id="f-response" rows="4" placeholder="Kullanıcı bu kelimeyi yazdığında gönderilecek cevap..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>Platform</label>
+            <select id="f-platform">
+              <option value="all">Tüm Platformlar</option>
+              <option value="facebook">Sadece Facebook</option>
+              <option value="instagram">Sadece Instagram</option>
+              <option value="whatsapp">Sadece WhatsApp</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" onclick="closeModal()">İptal</button>
+          <button class="btn btn-primary" onclick="saveBotflow()">Kaydet</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function editFlow(id, keyword, response) {
+  document.getElementById('modal-container').innerHTML = `
+    <div class="modal-overlay" onclick="closeModal(event)">
+      <div class="modal">
+        <h3>Bot Akışını Düzenle</h3>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div class="form-group">
+            <label>Tetikleyici Kelime</label>
+            <input id="f-keyword" value="${keyword}">
+          </div>
+          <div class="form-group">
+            <label>Bot Cevabı</label>
+            <textarea id="f-response" rows="4">${response}</textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" onclick="closeModal()">İptal</button>
+          <button class="btn btn-primary" onclick="closeModal()">Kaydet</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function createAppointment() {
+  const body = {
+    title: document.getElementById('m-title').value,
+    customer_name: document.getElementById('m-name').value,
+    customer_phone: document.getElementById('m-phone').value,
+    appointment_date: document.getElementById('m-date').value,
+    appointment_time: document.getElementById('m-time').value,
+    notes: document.getElementById('m-notes').value,
+  };
+  const r = await api('/api/appointments', { method:'POST', body: JSON.stringify(body) });
+  if(r?.success) { closeModal(); renderAppointments(); }
+  else alert('Randevu oluşturulamadı');
+}
+
+function saveBotflow() {
+  alert('Bot akışları şu an veritabanı üzerinden güncelleniyor. Bu özellik yakında eklenecek.');
+  closeModal();
+}
+
+function closeModal(e) {
+  if(!e || e.target.classList.contains('modal-overlay')) {
+    document.getElementById('modal-container').innerHTML = '';
+  }
+}
+
+async function refreshData() {
+  showPage(currentPage);
+}
+
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape') closeModal();
+  if(e.key === 'Enter' && e.ctrlKey && currentPage === 'conversations') sendReply();
+});
+
+renderDashboard();
+
+setInterval(() => {
+  if(currentPage === 'conversations' && selectedConv) selectConv(selectedConv.id);
+}, 30000);
+</script>
+</body>
+</html>

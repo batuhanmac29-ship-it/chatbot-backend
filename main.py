@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
+import os
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import uvicorn
@@ -52,7 +54,10 @@ async def root():
             "PATCH /api/appointments/{id}": "Randevu güncelle",
         }
     }
-
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_panel():
+    with open("admin.html") as f:
+        return f.read()
 @app.get("/health", tags=["Genel"])
 async def health():
     return {"status": "ok"}
