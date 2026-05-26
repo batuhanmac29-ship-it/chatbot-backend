@@ -55,6 +55,10 @@ async def root():
         }
     }
 @app.get("/admin", response_class=HTMLResponse)
+@app.get("/privacy", response_class=HTMLResponse)
+async def privacy_policy():
+    with open("privacy.html") as f:
+        return f.read()
 async def admin_panel():
     with open("admin.html") as f:
         return f.read()
