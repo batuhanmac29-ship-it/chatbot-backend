@@ -165,3 +165,39 @@ async def delete_botflow(flow_id: str):
         await db.execute("DELETE FROM bot_flows WHERE id=?", (flow_id,))
         await db.commit()
     return {"success": True}
+@router.get("/botflows")
+async def list_botflows():
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM bot_flows ORDER BY created_at ASC") as cur:
+            rows = await cur.fetchall()
+        return {"success": True, "data": [dict(r) for r in rows]}
+
+@router.post("/botflows")
+async def create_botflow(body: dict):
+    import uuid
+    flow_id = str(uuid.uuid4())
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT INTO bot_flows (id, trigger_keyword, response_text, platform) VALUES (?,?,?,?)",
+            (flow_id, body["trigger_keyword"], body["response_text"], body.get("platform","all"))
+        )
+        await db.commit()
+    return {"success": True, "id": flow_id}
+
+@router.patch("/botflows/{flow_id}")
+async def update_botflow(flow_id: str, body: dict):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE bot_flows SET trigger_keyword=?, response_text=?, is_active=? WHERE id=?",
+            (body["trigger_keyword"], body["response_text"], body.get("is_active", 1), flow_id)
+        )
+        await db.commit()
+    return {"success": True}
+
+@router.delete("/botflows/{flow_id}")
+async def delete_botflow(flow_id: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("DELETE FROM bot_flows WHERE id=?", (flow_id,))
+        await db.commit()
+    return {"success": True}
