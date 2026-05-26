@@ -61,7 +61,15 @@ async def privacy_policy():
         return f.read()
 async def admin_panel():
     with open("admin.html") as f:
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_panel():
+    with open("admin.html") as f:
         return f.read()
+
+@app.get("/privacy", response_class=HTMLResponse)
+async def privacy_policy():
+    with open("privacy.html") as f:
+        return f.read()        return f.read()
 @app.get("/health", tags=["Genel"])
 async def health():
     return {"status": "ok"}
